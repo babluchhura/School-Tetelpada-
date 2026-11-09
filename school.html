@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Edu - School Management System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f3f4f6; --text: #1f2937; --card-bg: #ffffff;
+            --primary: #4f46e5; --primary-hover: #4338ca;
+            --sidebar: #111827; --sidebar-text: #9ca3af; --sidebar-active: #1f2937;
+            --border: #e5e7eb; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+        }
+        body.dark {
+            --bg: #0f172a; --text: #f8fafc; --card-bg: #1e293b;
+            --sidebar: #020617; --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; transition: background 0.3s, color 0.3s; }
+        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
+        
+        /* UI Utilities */
+        .hidden { display: none !important; }
+        .flex { display: flex; } .flex-col { flex-direction: column; } .gap-4 { gap: 1rem; }
+        .p-4 { padding: 1rem; } .p-6 { padding: 1.5rem; } .mt-4 { margin-top: 1rem; }
+        
+        /* Buttons & Inputs */
+        input, select, button { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--card-bg); color: var(--text); font-size: 0.95rem; }
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-danger { background: var(--danger); } .btn-success { background: var(--success); }
+        .btn-small { padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto; margin: 0; }
+        
+        /* Cards & Tables */
+        .card { background: var(--card-bg); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+        .stat-card { border-left: 4px solid var(--primary); display: flex; align-items: center; justify-content: space-between; }
+        .stat-card h3 { font-size: 1rem; color: gray; font-weight: normal; } .stat-card h2 { font-size: 2rem; margin-top: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: rgba(0,0,0,0.02); font-weight: 600; color: gray; text-transform: uppercase; font-size: 0.8rem; }
+        tr:hover { background: rgba(0,0,0,0.01); }
+
+        /* Login Screen */
+        #login-screen { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%); }
+        .login-box { max-width: 400px; width: 90%; text-align: center; }
+        .login-box i { font-size: 3rem; color: var(--primary); margin-bottom: 1rem; }
+        
+        /* Main Layout */
+        aside { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; z-index: 10; }
+        .logo { padding: 1.5rem; font-size: 1.25rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 1rem 1.5rem; color: var(--sidebar-text); cursor: pointer; display: flex; align-items: center; gap: 12px; text-decoration: none; transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: var(--sidebar-active); color: white; border-left: 4px solid var(--primary); }
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: var(--card-bg); padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .content-area { flex: 1; padding: 2rem; overflow-y: auto; }
+        .theme-toggle { background: transparent; color: var(--text); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; padding: 0; display: grid; place-items: center; }
+        
+        @media (max-width: 768px) {
+            aside { position: absolute; height: 100%; transform: translateX(-100%); transition: 0.3s; }
+            aside.open { transform: translateX(0); }
+            .menu-btn { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="card login-box">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <h2 style="margin-bottom: 2rem;">Pro Edu Portal</h2>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login Securely</button>
+            </form>
+            <p id="login-error" style="color: red; margin-top: 10px; font-size: 0.9rem;"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="app-screen" class="hidden" style="width: 100%;">
+        <aside id="sidebar">
+            <div class="logo"><i class="fa-solid fa-graduation-cap"></i> Pro Edu SMS</div>
+            <div id="nav-links" style="flex:1; margin-top: 1rem;"></div>
+            <div style="padding: 1.5rem;">
+                <div id="user-info" style="margin-bottom:15px; color:white; font-size:0.9rem;"></div>
+                <button class="btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </aside>
+        <main>
+            <header>
+                <div class="flex" style="align-items: center; gap: 15px;">
+                    <button class="theme-toggle menu-btn hidden" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                    <h2 id="page-title">Dashboard</h2>
+                </div>
+                <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></button>
+            </header>
+            <div class="content-area" id="main-content">
+                <!-- Dynamic Content Loads Here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        const state = { token: localStorage.getItem('token'), user: JSON.parse(localStorage.getItem('user') || 'null'), currentView: 'dashboard' };
+        const API = '/api';
+        let chartInstance = null;
+
+        // --- INITIALIZATION ---
+        if (state.token && state.user) initApp();
+        else document.getElementById('login-screen').classList.remove('hidden');
+
+        // --- CORE FUNCTIONS ---
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
+            
+            const res = await fetch(API + endpoint, config);
+            const data = await res.json();
+            if (res.status === 401 || res.status === 403) { logout(); throw new Error('Session Expired'); }
+            if (!res.ok) throw new Error(data.error || 'API Error');
+            return data;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value, p = document.getElementById('password').value;
+            try {
+                const data = await apiCall('/login', 'POST', { username: u, password: p });
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                state.token = data.token; state.user = data.user;
+                document.getElementById('login-screen').classList.add('hidden');
+                initApp();
+            } catch (err) { document.getElementById('login-error').innerText = err.message; }
+        }
+
+        function logout() {
+            localStorage.clear(); location.reload();
+        }
+
+        function toggleTheme() { document.body.classList.toggle('dark'); }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        function initApp() {
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('user-info').innerHTML = `<b>${state.user.name}</b><br><small style="color:gray;text-transform:uppercase">${state.user.role}</small>`;
+            buildSidebar();
+            loadView('dashboard');
+        }
+
+        function buildSidebar() {
+            const r = state.user.role;
+            const links = [
+                { id: 'dashboard', icon: 'fa-chart-pie', text: 'Dashboard', roles: ['admin','staff','student'] },
+                { id: 'students', icon: 'fa-users', text: 'Students', roles: ['admin','staff'] },
+                { id: 'staff', icon: 'fa-chalkboard-user', text: 'Staff', roles: ['admin'] },
+                { id: 'attendance', icon: 'fa-calendar-check', text: 'Attendance', roles: ['admin','staff','student'] },
+                { id: 'results', icon: 'fa-file-lines', text: 'Exams & Results', roles: ['admin','staff','student'] },
+                { id: 'leaves', icon: 'fa-envelope-open-text', text: 'Leave Portal', roles: ['admin','staff','student'] },
+                { id: 'notifications', icon: 'fa-bell', text: 'Announcements', roles: ['admin','staff','student'] },
+                { id: 'settings', icon: 'fa-gear', text: 'Settings', roles: ['admin','staff','student'] }
+            ];
+            const html = links.filter(l => l.roles.includes(r)).map(l => 
+                `<a class="nav-item" id="nav-${l.id}" onclick="loadView('${l.id}')"><i class="fa-solid ${l.icon}"></i> ${l.text}</a>`
+            ).join('');
+            document.getElementById('nav-links').innerHTML = html;
+        }
+
+        async function loadView(view) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const activeNav = document.getElementById(`nav-${view}`);
+            if(activeNav) activeNav.classList.add('active');
+            
+            document.getElementById('page-title').innerText = view.charAt(0).toUpperCase() + view.slice(1);
+            const content = document.getElementById('main-content');
+            content.innerHTML = '<div style="text-align:center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i> Loading...</div>';
+            state.currentView = view;
+
+            try {
+                if (view === 'dashboard') await renderDashboard(content);
+                else if (view === 'students') await renderUsers('student', content);
+                else if (view === 'staff') await renderUsers('staff', content);
+                else if (view === 'attendance') await renderAttendance(content);
+                else if (view === 'results') await renderResults(content);
+                else if (view === 'leaves') await renderLeaves(content);
+                else if (view === 'notifications') await renderNotifications(content);
+                else if (view === 'settings') await renderSettings(content);
+            } catch (err) { content.innerHTML = `<div style="color:red">Error: ${err.message}</div>`; }
+        }
+
+        // --- VIEW RENDERERS ---
+
+        async function renderDashboard(c) {
+            const stats = await apiCall('/stats');
+            let html = `<div class="grid-cards" style="margin-bottom: 2rem;">`;
+            
+            if (state.user.role === 'admin') {
+                html += `
+                    <div class="card stat-card"><div><h3>Total Students</h3><h2>${stats.students || 0}</h2></div><i class="fa-solid fa-users fa-2x" style="color:var(--primary)"></i></div>
+                    <div class="card stat-card"><div><h3>Total Staff</h3><h2>${stats.staff || 0}</h2></div><i class="fa-solid fa-chalkboard-user fa-2x" style="color:var(--primary)"></i></div>
+                    <div class="card stat-card"><div><h3>Pending Leaves</h3><h2>${stats.pendingLeaves || 0}</h2></div><i class="fa-solid fa-envelope fa-2x" style="color:var(--warning)"></i></div>
+                `;
+            } else if (state.user.role === 'student') {
+                html += `
+                    <div class="card stat-card"><div><h3>My Attendance</h3><h2>${stats.attendancePercentage}</h2></div><i class="fa-solid fa-calendar-check fa-2x" style="color:var(--primary)"></i></div>
+                    <div class="card stat-card"><div><h3>Class</h3><h2>${state.user.className || 'N/A'}</h2></div><i class="fa-solid fa-school fa-2x" style="color:var(--primary)"></i></div>
+                `;
+            } else {
+                html += `<div class="card stat-card"><div><h3>Assigned Class</h3><h2>${state.user.className || 'N/A'}</h2></div><i class="fa-solid fa-chalkboard fa-2x" style="color:var(--primary)"></i></div>`;
+            }
+            html += `</div><div class="card"><h2><i class="fa-solid fa-chart-bar"></i> Analytics</h2><canvas id="mainChart" style="max-height: 400px; width: 100%;"></canvas></div>`;
+            c.innerHTML = html;
+
+            if (chartInstance) chartInstance.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            let chartConfig = { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } };
+
+            if (state.user.role === 'admin' && stats.attendanceChart) {
+                chartConfig.data = { labels: stats.attendanceChart.labels, datasets: [{ label: 'Overall Attendance Status', data: stats.attendanceChart.data, backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'] }]};
+            } else if (state.user.role === 'student' && stats.performanceChart) {
+                chartConfig.data = { labels: stats.performanceChart.labels, datasets: [{ label: 'Marks Obtained', data: stats.performanceChart.data, backgroundColor: '#4f46e5' }]};
+            }
+            chartInstance = new Chart(ctx, chartConfig);
+        }
+
+        async function renderUsers(role, c) {
+            const users = await apiCall(`/users/${role}`);
+            let html = `<div class="card">
+                <div class="flex" style="justify-content: space-between; margin-bottom: 1rem;">
+                    <h2>Manage ${role.charAt(0).toUpperCase() + role.slice(1)}s</h2>
+                    ${state.user.role === 'admin' ? `<button class="btn-small" onclick="document.getElementById('addUserForm').classList.toggle('hidden')">+ Add New</button>` : ''}
+                </div>`;
+            
+            if (state.user.role === 'admin') {
+                html += `<form id="addUserForm" class="hidden grid-cards" style="background:var(--bg); padding:1rem; border-radius:0.5rem; margin-bottom:1rem;" onsubmit="addUser(event, '${role}')">
+                    <input type="text" id="nu-name" placeholder="Full Name" required>
+                    <input type="text" id="nu-username" placeholder="Username" required>
+                    <input type="password" id="nu-pass" placeholder="Password" required>
+                    <input type="text" id="nu-class" placeholder="Class / Subject" required>
+                    <button type="submit" style="grid-column: 1 / -1;">Create Record</button>
+                </form>`;
+            }
+
+            html += `<table><tr><th>Name</th><th>Username</th><th>Class/Dept</th>${state.user.role === 'admin' ? '<th>Action</th>' : ''}</tr>`;
+            users.forEach(u => {
+                html += `<tr><td>${u.name}</td><td>${u.username}</td><td>${u.className || '-'}</td>
+                ${state.user.role === 'admin' ? `<td><button class="btn-small btn-danger" onclick="deleteUser('${u._id}')">Delete</button></td>` : ''}</tr>`;
+            });
+            c.innerHTML = html + `</table></div>`;
+        }
+
+        async function renderAttendance(c) {
+            const data = await apiCall('/attendance');
+            let html = `<div class="card"><h2>Attendance Records</h2>`;
+            
+            if (state.user.role !== 'student') {
+                const students = await apiCall('/users/student');
+                let options = students.map(s => `<option value="${s._id}">${s.name} (${s.className || ''})</option>`).join('');
+                html += `<form class="grid-cards" style="background:var(--bg); padding:1rem; border-radius:0.5rem; margin:1rem 0;" onsubmit="markAttendance(event)">
+                    <select id="att-student" required><option value="">Select Student</option>${options}</select>
+                    <input type="date" id="att-date" required value="${new Date().toISOString().split('T')[0]}">
+                    <select id="att-status" required><option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option></select>
+                    <button type="submit">Mark Attendance</button>
+                </form>`;
+            }
+
+            html += `<table><tr><th>Date</th>${state.user.role!=='student'?'<th>Student</th>':''}<th>Status</th></tr>`;
+            data.forEach(d => {
+                const color = d.status === 'Present' ? 'var(--success)' : d.status === 'Absent' ? 'var(--danger)' : 'var(--warning)';
+                html += `<tr><td>${d.date}</td>${state.user.role!=='student'?`<td>${d.userId?.name||'Unknown'}</td>`:''}
+                <td><span style="background:${color};color:white;padding:3px 8px;border-radius:12px;font-size:0.8rem;">${d.status}</span></td></tr>`;
+            });
+            c.innerHTML = html + `</table></div>`;
+        }
+
+        async function renderResults(c) {
+            const data = await apiCall('/results');
+            let html = `<div class="card"><h2>Examination Results</h2>`;
+            
+            if (state.user.role !== 'student') {
+                const students = await apiCall('/users/student');
+                let options = students.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+                html += `<form class="grid-cards" style="background:var(--bg); padding:1rem; border-radius:0.5rem; margin:1rem 0;" onsubmit="addResult(event)">
+                    <select id="res-student" required><option value="">Select Student</option>${options}</select>
+                    <input type="text" id="res-exam" placeholder="Exam Name (e.g., Mid-Term)" required>
+                    <input type="text" id="res-subj" placeholder="Subject" required>
+                    <input type="number" id="res-marks" placeholder="Marks Obtained" required>
+                    <input type="number" id="res-total" placeholder="Total Marks" required>
+                    <button type="submit">Add Result</button>
+                </form>`;
+            }
+
+            html += `<table><tr><th>Exam</th><th>Subject</th>${state.user.role!=='student'?'<th>Student</th>':''}<th>Marks</th><th>Grade</th></tr>`;
+            data.forEach(d => {
+                html += `<tr><td>${d.examName}</td><td>${d.subject}</td>${state.user.role!=='student'?`<td>${d.studentId?.name}</td>`:''}
+                <td>${d.marksObtained}/${d.totalMarks}</td><td><b>${d.grade}</b></td></tr>`;
+            });
+            c.innerHTML = html + `</table></div>`;
+        }
+
+        async function renderLeaves(c) {
+            const data = await apiCall('/leaves');
+            let html = `<div class="card"><h2>Leave Portal</h2>`;
+            
+            if (state.user.role !== 'admin') {
+                html += `<form class="grid-cards" style="background:var(--bg); padding:1rem; border-radius:0.5rem; margin:1rem 0;" onsubmit="applyLeave(event)">
+                    <input type="date" id="lv-start" required> <input type="date" id="lv-end" required>
+                    <input type="text" id="lv-reason" placeholder="Reason for leave" required style="grid-column: 1 / -1;">
+                    <button type="submit" style="grid-column: 1 / -1;">Submit Application</button>
+                </form>`;
+            }
+
+            html += `<table><tr><th>Applicant</th><th>Dates</th><th>Reason</th><th>Status</th>${state.user.role==='admin'?'<th>Actions</th>':''}</tr>`;
+            data.forEach(d => {
+                const badge = d.status==='Approved' ? 'var(--success)' : d.status==='Rejected' ? 'var(--danger)' : 'var(--warning)';
+                html += `<tr><td>${d.userId?.name} <small>(${d.userId?.role})</small></td><td>${d.startDate} to ${d.endDate}</td><td>${d.reason}</td>
+                <td><span style="background:${badge};color:white;padding:3px 8px;border-radius:12px;font-size:0.8rem;">${d.status}</span></td>`;
+                
+                if (state.user.role === 'admin') {
+                    html += `<td>${d.status === 'Pending' ? `<button class="btn-small btn-success" onclick="updateLeave('${d._id}', 'Approved')">Approve</button>
+                    <button class="btn-small btn-danger" onclick="updateLeave('${d._id}', 'Rejected')">Reject</button>` : '-'}</td>`;
+                }
+                html += `</tr>`;
+            });
+            c.innerHTML = html + `</table></div>`;
+        }
+
+        async function renderNotifications(c) {
+            const data = await apiCall('/notifications');
+            let html = `<div class="card"><h2>School Announcements</h2>`;
+            
+            if (state.user.role !== 'student') {
+                html += `<form class="flex gap-4" style="margin:1rem 0; flex-wrap:wrap;" onsubmit="sendNotification(event)">
+                    <input type="text" id="nt-msg" placeholder="Message content..." required style="flex:1; min-width:200px;">
+                    <select id="nt-target" style="width:auto;"><option value="all">Everyone</option><option value="student">Students Only</option><option value="staff">Staff Only</option></select>
+                    <button type="submit" style="width:auto; padding:0 20px;">Post</button>
+                </form>`;
+            }
+
+            html += `<div style="display:flex; flex-direction:column; gap:10px; margin-top:1rem;">`;
+            data.forEach(d => {
+                html += `<div style="padding:1rem; background:rgba(79, 70, 229, 0.05); border-left:4px solid var(--primary); border-radius:4px;">
+                    <div style="font-size:0.8rem; color:gray; margin-bottom:5px;"><i class="fa-solid fa-clock"></i> ${new Date(d.date).toLocaleString()} • From: ${d.author}</div>
+                    <div style="font-size:1.05rem;">${d.message}</div>
+                </div>`;
+            });
+            c.innerHTML = html + `</div></div>`;
+        }
+
+        async function renderSettings(c) {
+            c.innerHTML = `<div class="card" style="max-width:500px"><h2>Account Settings</h2>
+            <form onsubmit="changePassword(event)" style="margin-top:1.5rem">
+                <label>Change Password</label>
+                <input type="password" id="set-pass" placeholder="Enter new password" required>
+                <button type="submit">Update Password</button>
+            </form></div>`;
+        }
+
+        // --- FORM HANDLERS (CRUD) ---
+        async function addUser(e, role) {
+            e.preventDefault();
+            const payload = { role, name: document.getElementById('nu-name').value, username: document.getElementById('nu-username').value, password: document.getElementById('nu-pass').value, className: document.getElementById('nu-class').value };
+            try { await apiCall('/users', 'POST', payload); alert('Added Successfully'); loadView(role + 's'); } catch(err) { alert(err.message); }
+        }
+        async function deleteUser(id) {
+            if(!confirm('Delete this user permanently?')) return;
+            try { await apiCall(`/users/${id}`, 'DELETE'); loadView(state.currentView); } catch(err) { alert(err.message); }
+        }
+        async function markAttendance(e) {
+            e.preventDefault();
+            const payload = { userId: document.getElementById('att-student').value, date: document.getElementById('att-date').value, status: document.getElementById('att-status').value };
+            try { await apiCall('/attendance', 'POST', payload); loadView('attendance'); } catch(err) { alert(err.message); }
+        }
+        async function addResult(e) {
+            e.preventDefault();
+            const payload = { studentId: document.getElementById('res-student').value, examName: document.getElementById('res-exam').value, subject: document.getElementById('res-subj').value, marksObtained: Number(document.getElementById('res-marks').value), totalMarks: Number(document.getElementById('res-total').value) };
+            try { await apiCall('/results', 'POST', payload); loadView('results'); } catch(err) { alert(err.message); }
+        }
+        async function applyLeave(e) {
+            e.preventDefault();
+            const payload = { startDate: document.getElementById('lv-start').value, endDate: document.getElementById('lv-end').value, reason: document.getElementById('lv-reason').value };
+            try { await apiCall('/leaves', 'POST', payload); loadView('leaves'); } catch(err) { alert(err.message); }
+        }
+        async function updateLeave(id, status) {
+            try { await apiCall(`/leaves/${id}`, 'PUT', { status }); loadView('leaves'); } catch(err) { alert(err.message); }
+        }
+        async function sendNotification(e) {
+            e.preventDefault();
+            try { await apiCall('/notifications', 'POST', { message: document.getElementById('nt-msg').value, targetRole: document.getElementById('nt-target').value }); loadView('notifications'); } catch(err) { alert(err.message); }
+        }
+        async function changePassword(e) {
+            e.preventDefault();
+            try { await apiCall('/change-password', 'POST', { newPassword: document.getElementById('set-pass').value }); alert('Password Updated. Please login again.'); logout(); } catch(err) { alert(err.message); }
+        }
+    </script>
+</body>
+</html>
